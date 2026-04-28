@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 
-import type { Outcome, TradeRecord } from "@/lib/checklist";
+import { buildOutcomePrompt, type Outcome, type TradeRecord } from "@/lib/checklist";
 
 interface EditTradeDialogProps {
   trade: TradeRecord | null;
@@ -68,7 +68,7 @@ function TradeForm({
   return (
     <>
       <div className="flex flex-col gap-5 py-2">
-        <p className="text-sm text-muted-foreground">{trade.summary}</p>
+        <p className="text-base font-medium">{buildOutcomePrompt(trade)}</p>
 
         <div className="flex flex-col gap-2">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -95,24 +95,22 @@ function TradeForm({
           </RadioGroup>
         </div>
 
-        {outcome !== "pending" && (
-          <div className="flex flex-col gap-2">
-            <Label
-              htmlFor="pnl-amount"
-              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-            >
-              Monto ({outcome === "win" ? "+" : "-"}$)
-            </Label>
-            <Input
-              id="pnl-amount"
-              type="number"
-              min={0}
-              placeholder="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-        )}
+        <div className="flex flex-col gap-2">
+          <Label
+            htmlFor="pnl-amount"
+            className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            Monto ({outcome === "loss" ? "-" : "+"}$)
+          </Label>
+          <Input
+            id="pnl-amount"
+            type="number"
+            min={0}
+            placeholder="0"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </div>
 
         <div className="flex flex-col gap-2">
           <Label
@@ -124,7 +122,7 @@ function TradeForm({
           <Textarea
             id="trade-notas"
             placeholder="Agrega tus observaciones sobre este trade..."
-            rows={3}
+            rows={6}
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
           />
@@ -163,7 +161,7 @@ export function EditTradeDialog({
 }: EditTradeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar trade</DialogTitle>
         </DialogHeader>

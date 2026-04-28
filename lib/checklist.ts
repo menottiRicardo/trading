@@ -186,3 +186,15 @@ export function buildSummary(answers: Record<string, string>): string {
 export function answerChoiceKey(a: Answer): string {
   return a.value ?? a.next;
 }
+
+// ─── Outcome prompt ───────────────────────────────────────────────────────────
+
+/** Returns a contextual "how did it go?" prompt for the edit dialog. */
+export function buildOutcomePrompt(trade: TradeRecord): string {
+  const lowProb =
+    trade.answers["q1"] === INFO_NO_CONTEXT ||
+    trade.answers["q3"] === INFO_NO_PD;
+  return lowProb
+    ? "Este trade no era de alta probabilidad, ¿funcionó?"
+    : "Este trade parecía ganador, ¿cómo te fue?";
+}
