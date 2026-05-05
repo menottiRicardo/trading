@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  Show,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+} from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { History, Home } from "lucide-react";
@@ -16,9 +22,37 @@ const navLinks = [
 const floatingBtn =
   "fixed top-4 z-40 size-10 rounded-lg hover:bg-accent hover:text-accent-foreground";
 
+function NavAuthControls({ className }: { className?: string }) {
+  return (
+    <div className={className}>
+      <Show when="signed-out">
+        <div className="flex items-center gap-2">
+          <SignInButton>
+            <Button variant="outline" size="sm">
+              Entrar
+            </Button>
+          </SignInButton>
+          <SignUpButton>
+            <Button size="sm">Crear cuenta</Button>
+          </SignUpButton>
+        </div>
+      </Show>
+      <Show when="signed-in">
+        <UserButton />
+      </Show>
+    </div>
+  );
+}
+
 export function SiteNav() {
   const pathname = usePathname();
+  const isAuthRoute =
+    pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
   const isNewTrade = pathname === "/new-trade";
+
+  if (isAuthRoute) {
+    return null;
+  }
 
   if (isNewTrade) {
     return (
@@ -28,6 +62,9 @@ export function SiteNav() {
             <Home className="size-5" />
           </Link>
         </Button>
+        <div className="fixed top-4 left-1/2 z-40 -translate-x-1/2">
+          <NavAuthControls />
+        </div>
         <Button variant="ghost" size="icon" className={`${floatingBtn} right-4`} asChild>
           <Link href="/history" aria-label="Historial">
             <History className="size-5" />
@@ -45,6 +82,7 @@ export function SiteNav() {
             <Link href={link.href}>{link.label}</Link>
           </Button>
         ))}
+        <NavAuthControls className="ml-2 flex items-center border-l border-border pl-3" />
       </div>
       <Separator />
     </header>

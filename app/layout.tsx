@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Geist_Mono, Inter } from "next/font/google";
 
 import "./globals.css";
@@ -25,13 +26,15 @@ export default function RootLayout({
       className={cn("antialiased", fontMono.variable, inter.variable, "font-sans")}
     >
       <body>
-        <ThemeProvider>
-          <SiteNav />
+        <ClerkProvider>
+          <ThemeProvider>
+            <SiteNav />
 
-          {children}
+            {children}
 
-          <Toaster />
-        </ThemeProvider>
+            <Toaster />
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );
