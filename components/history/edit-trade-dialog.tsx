@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,13 +18,26 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 
-import { buildOutcomePrompt, type Outcome, type TradeRecord } from "@/lib/checklist";
+import {
+  buildOutcomePrompt,
+  TRADE_TAGS,
+  type Outcome,
+  type TradeRecord,
+  type TradeTag,
+} from "@/lib/checklist";
 
 interface EditTradeDialogProps {
   trade: TradeRecord | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (id: string, outcome: Outcome, pnl: number, notas: string, images: string[]) => void;
+  onSave: (
+    id: string,
+    outcome: Outcome,
+    pnl: number,
+    notas: string,
+    images: string[],
+    tags: string[]
+  ) => void;
   onDelete: (id: string) => void;
 }
 
@@ -35,7 +49,14 @@ function TradeForm({
   onClose,
 }: {
   trade: TradeRecord;
-  onSave: (id: string, outcome: Outcome, pnl: number, notas: string, images: string[]) => void;
+  onSave: (
+    id: string,
+    outcome: Outcome,
+    pnl: number,
+    notas: string,
+    images: string[],
+    tags: string[]
+  ) => void;
   onDelete: (id: string) => void;
   onClose: () => void;
 }) {
@@ -45,12 +66,19 @@ function TradeForm({
   );
   const [notas, setNotas] = useState(trade.notas ?? "");
   const [images, setImages] = useState<string[]>(trade.images ?? []);
+  const [tags, setTags] = useState<string[]>(trade.tags ?? []);
+
+  function toggleTag(tag: TradeTag) {
+    setTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  }
 
   function handleSave() {
     const raw = parseFloat(amount);
     const abs = isNaN(raw) ? 0 : Math.abs(raw);
     const signed = outcome === "loss" ? -abs : outcome === "win" ? abs : 0;
-    onSave(trade.id, outcome, signed, notas.trim(), images);
+    onSave(trade.id, outcome, signed, notas.trim(), images, tags);
     onClose();
   }
 
@@ -93,6 +121,29 @@ function TradeForm({
               </Label>
             ))}
           </RadioGroup>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Etiquetas
+          </Label>
+          <div className="flex flex-wrap gap-2">
+            {TRADE_TAGS.map((tag) => {
+              const selected = tags.includes(tag);
+              return (
+                <Badge
+                  key={tag}
+                  asChild
+                  variant={selected ? "default" : "outline"}
+                  className="text-xs font-normal"
+                >
+                  <button type="button" onClick={() => toggleTag(tag)}>
+                    {tag}
+                  </button>
+                </Badge>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex flex-col gap-2">

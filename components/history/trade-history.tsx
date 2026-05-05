@@ -6,8 +6,10 @@ import { ClipboardList } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import type { Outcome, TradeRecord } from "@/lib/checklist";
+import { cn } from "@/lib/utils";
 import { useTrades } from "@/hooks/use-trades";
 import { EditTradeDialog } from "./edit-trade-dialog";
 
@@ -38,7 +40,7 @@ function outcomeLabel(outcome: Outcome): string {
 }
 
 export function TradeHistory() {
-  const { trades, updateTrade, deleteTrade } = useTrades();
+  const { trades, loading, updateTrade, deleteTrade } = useTrades();
   const [selected, setSelected] = useState<TradeRecord | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -47,14 +49,31 @@ export function TradeHistory() {
     setDialogOpen(true);
   }
 
-  function handleSave(id: string, outcome: Outcome, pnl: number, notas: string, images: string[]) {
-    updateTrade(id, { outcome, pnl, notas, images });
+  async function handleSave(
+    id: string,
+    outcome: Outcome,
+    pnl: number,
+    notas: string,
+    images: string[],
+    tags: string[]
+  ) {
+    await updateTrade(id, { outcome, pnl, notas, images, tags });
     toast.success("Trade actualizado");
   }
 
-  function handleDelete(id: string) {
-    deleteTrade(id);
+  async function handleDelete(id: string) {
+    await deleteTrade(id);
     toast.success("Trade eliminado");
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-2">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-16 w-full rounded-lg" />
+        ))}
+      </div>
+    );
   }
 
   if (trades.length === 0) {
@@ -73,14 +92,22 @@ export function TradeHistory() {
           const pnlText = formatPnl(trade.pnl, trade.outcome);
           const isWin = trade.outcome === "win";
           const isLoss = trade.outcome === "loss";
+          const tagList = trade.tags ?? [];
+          const visibleTags = tagList.slice(0, 2);
+          const overflow = tagList.length - visibleTags.length;
 
           return (
             <Card
               key={trade.id}
-              className="cursor-pointer transition-colors hover:bg-accent/40"
+              className={cn(
+                "cursor-pointer border-l-4 transition-colors hover:bg-accent/40",
+                trade.outcome === "win" && "border-l-emerald-500",
+                trade.outcome === "loss" && "border-l-destructive",
+                trade.outcome === "pending" && "border-l-border"
+              )}
               onClick={() => handleRowClick(trade)}
             >
-              <CardContent className="flex items-center gap-4 p-4">
+              <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4">
                 {/* Date */}
                 <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
                   {formatDate(trade.createdAt)}
@@ -90,6 +117,22 @@ export function TradeHistory() {
                 <Badge variant="secondary" className="shrink-0 capitalize">
                   {trade.direction}
                 </Badge>
+
+                {/* Tags */}
+                {visibleTags.length > 0 && (
+                  <div className="flex shrink-0 flex-wrap items-center gap-1">
+                    {visibleTags.map((t) => (
+                      <Badge key={t} variant="outline" className="text-[10px] font-normal">
+                        {t}
+                      </Badge>
+                    ))}
+                    {overflow > 0 && (
+                      <Badge variant="outline" className="text-[10px] font-normal">
+                        +{overflow}
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
                 {/* Outcome badge */}
                 <Badge

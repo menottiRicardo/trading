@@ -96,11 +96,11 @@ export function ChecklistForm() {
 
   // ── Save trade ────────────────────────────────────────────────────────────
 
-  const saveAndFinish = useCallback(() => {
+  const saveAndFinish = useCallback(async () => {
     if (saved) return;
     const summary = buildSummary(answers);
     const direction = (answers["q4"] as Direction) ?? "bajista";
-    addTrade({
+    await addTrade({
       id: crypto.randomUUID(),
       createdAt: Date.now(),
       answers,
@@ -110,6 +110,7 @@ export function ChecklistForm() {
       pnl: 0,
       notas: "",
       images,
+      tags: [],
     });
     setSaved(true);
     toast.success("Trade guardado en el historial");

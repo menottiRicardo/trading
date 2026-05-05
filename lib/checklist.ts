@@ -1,6 +1,14 @@
 export type Direction = "bajista" | "alcista";
 export type Outcome = "pending" | "win" | "loss";
 
+export const TRADE_TAGS = [
+  "Buen Modelo",
+  "FOMO",
+  "Venganza",
+  "Ansiedad",
+] as const;
+export type TradeTag = (typeof TRADE_TAGS)[number];
+
 export interface TradeRecord {
   id: string;
   createdAt: number;
@@ -11,6 +19,7 @@ export interface TradeRecord {
   pnl: number;
   notas: string;
   images: string[];
+  tags: string[];
 }
 
 // ─── Step types ───────────────────────────────────────────────────────────────

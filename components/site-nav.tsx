@@ -39,7 +39,7 @@ export function SiteNav() {
 
   return (
     <header className="sticky top-0 z-30 bg-background/80 backdrop-blur supports-backdrop-filter:bg-background/60">
-      <div className="mx-auto flex h-12 max-w-xl items-center gap-1 px-4">
+      <div className="mx-auto flex h-12 max-w-7xl items-center justify-end gap-1 px-4">
         {navLinks.map((link) => (
           <Button key={link.href} variant="ghost" size="sm" asChild>
             <Link href={link.href}>{link.label}</Link>

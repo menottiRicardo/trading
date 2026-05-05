@@ -1,25 +1,46 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Outcome, TradeRecord } from "@/lib/checklist";
 import {
-  deleteTrade as deleteFromStorage,
+  deleteTrade as deleteFromDb,
   loadTrades,
-  saveTrade as saveToStorage,
-  updateTrade as updateInStorage,
-} from "@/lib/storage";
+  saveTrade as saveToDb,
+  updateTrade as updateInDb,
+} from "@/lib/db";
 
 export function useTrades() {
-  const [trades, setTrades] = useState<TradeRecord[]>(() => loadTrades());
+  const [trades, setTrades] = useState<TradeRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const addTrade = useCallback((trade: TradeRecord) => {
-    saveToStorage(trade);
+  useEffect(() => {
+    loadTrades()
+      .then((t) => {
+        setTrades(t);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const addTrade = useCallback(async (trade: TradeRecord) => {
+    await saveToDb(trade);
     setTrades((prev) => [trade, ...prev]);
   }, []);
 
   const updateTrade = useCallback(
-    (id: string, patch: { outcome: Outcome; pnl: number; notas: string; images: string[] }) => {
-      updateInStorage(id, patch);
+    async (
+      id: string,
+      patch: {
+        outcome: Outcome;
+        pnl: number;
+        notas: string;
+        images: string[];
+        tags: string[];
+      }
+    ) => {
+      await updateInDb(id, patch);
       setTrades((prev) =>
         prev.map((t) => (t.id === id ? { ...t, ...patch } : t))
       );
@@ -27,10 +48,10 @@ export function useTrades() {
     []
   );
 
-  const deleteTrade = useCallback((id: string) => {
-    deleteFromStorage(id);
+  const deleteTrade = useCallback(async (id: string) => {
+    await deleteFromDb(id);
     setTrades((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  return { trades, addTrade, updateTrade, deleteTrade };
+  return { trades, loading, addTrade, updateTrade, deleteTrade };
 }
