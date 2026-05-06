@@ -22,6 +22,9 @@ const navLinks = [
 const floatingBtn =
   "fixed top-4 z-40 size-10 rounded-lg hover:bg-accent hover:text-accent-foreground";
 
+const floatingIconBtn =
+  "size-10 rounded-lg hover:bg-accent hover:text-accent-foreground";
+
 function NavAuthControls({ className }: { className?: string }) {
   return (
     <div className={className}>
@@ -62,14 +65,14 @@ export function SiteNav() {
             <Home className="size-5" />
           </Link>
         </Button>
-        <div className="fixed top-4 left-1/2 z-40 -translate-x-1/2">
-          <NavAuthControls />
+        <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+          <NavAuthControls className="flex items-center" />
+          <Button variant="ghost" size="icon" className={floatingIconBtn} asChild>
+            <Link href="/history" aria-label="Historial">
+              <History className="size-5" />
+            </Link>
+          </Button>
         </div>
-        <Button variant="ghost" size="icon" className={`${floatingBtn} right-4`} asChild>
-          <Link href="/history" aria-label="Historial">
-            <History className="size-5" />
-          </Link>
-        </Button>
       </>
     );
   }

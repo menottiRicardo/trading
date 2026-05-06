@@ -9,7 +9,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { useNews } from "@/hooks/use-news";
 import type { NewsEvent } from "@/app/api/news/route";
-import { formatEt, getEtDateKey, isToday, isPast, ET_TZ } from "@/lib/time";
+import {
+  formatEt,
+  getEtDateKey,
+  getEtDateKeyFromFfDateString,
+  isToday,
+  isPast,
+  ET_TZ,
+} from "@/lib/time";
 
 interface GroupedDay {
   dateKey: string;
@@ -23,7 +30,7 @@ function groupEventsByDay(events: NewsEvent[]): GroupedDay[] {
   const groups = new Map<string, NewsEvent[]>();
 
   for (const event of events) {
-    const dateKey = getEtDateKey(new Date(event.date));
+    const dateKey = getEtDateKeyFromFfDateString(event.date);
     const existing = groups.get(dateKey) ?? [];
     groups.set(dateKey, [...existing, event]);
   }
@@ -59,10 +66,22 @@ function formatTime(dateStr: string): string {
   }).format(date);
 }
 
+/** Lex-safe compare for YYYY-MM-DD keys from getEtDateKey / FF strings. */
+function etYmdOrder(ymd: string): number {
+  const [y, m, d] = ymd.split("-").map(Number);
+  if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return 0;
+  return y * 10000 + m * 100 + d;
+}
+
 export function ForexNews() {
   const { events, loading, error } = useNews();
 
   const grouped = useMemo(() => groupEventsByDay(events), [events]);
+
+  const todayKey = getEtDateKey(Date.now());
+  const visibleGrouped = grouped.filter(
+    (day) => etYmdOrder(day.dateKey) >= etYmdOrder(todayKey)
+  );
 
   if (loading) {
     return (
@@ -116,6 +135,24 @@ export function ForexNews() {
     );
   }
 
+  if (events.length > 0 && visibleGrouped.length === 0) {
+    return (
+      <Card className="lg:sticky lg:top-16">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Newspaper className="size-4" />
+            Noticias USD
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            No hay noticias desde hoy en adelante (ET) esta semana.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="lg:sticky lg:top-16">
       <CardHeader className="pb-3">
@@ -133,10 +170,10 @@ export function ForexNews() {
             </Badge>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">Esta semana</p>
+        <p className="text-xs text-muted-foreground">Desde hoy (ET)</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {grouped.map((day) => (
+        {visibleGrouped.map((day) => (
           <div
             key={day.dateKey}
             className={`flex flex-col gap-1.5 border-l-2 pl-3 ${
@@ -164,7 +201,7 @@ export function ForexNews() {
                 <div className="flex items-center gap-2">
                   <span
                     className={`size-2 shrink-0 rounded-full ${
-                      event.impact === "High" ? "bg-[#ff0000]" : "bg-orange-500"
+                      event.impact === "High" ? "bg-red-600" : "bg-orange-500"
                     }`}
                     title={event.impact === "High" ? "Alto impacto" : "Impacto medio"}
                   />

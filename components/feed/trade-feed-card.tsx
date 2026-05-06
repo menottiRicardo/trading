@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -56,20 +56,29 @@ export function TradeFeedCard({ trade }: TradeFeedCardProps) {
   const hasImages = trade.images && trade.images.length > 0;
   const hasMultipleImages = trade.images && trade.images.length > 1;
 
-  const handleApiChange = (api: CarouselApi) => {
+  const setCarouselApi = useCallback((next: CarouselApi | undefined) => {
+    setApi(next);
+    if (next) {
+      setCurrent(next.selectedScrollSnap());
+    }
+  }, []);
+
+  useEffect(() => {
     if (!api) return;
-    setApi(api);
-    setCurrent(api.selectedScrollSnap());
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap());
-    });
-  };
+    const onSelect = () => setCurrent(api.selectedScrollSnap());
+    api.on("select", onSelect);
+    return () => {
+      api.off("select", onSelect);
+    };
+  }, [api]);
+
+  const tradeHref = `/trades/${trade.id}`;
 
   return (
     <Link
-      href={`/trades/${trade.id}`}
+      href={tradeHref}
       target="_blank"
-      rel="noopener"
+      rel="noopener noreferrer"
       className="block"
     >
       <Card
@@ -133,14 +142,14 @@ export function TradeFeedCard({ trade }: TradeFeedCardProps) {
             </span>
           </div>
 
-          {/* Image carousel */}
+          {/* Image carousel — preventDefault on this div stops anchor navigation
+              while carousel button handlers (scrollPrev/Next) still fire first */}
           {hasImages && (
             <div
               className="relative"
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.preventDefault()}
             >
-              <Carousel setApi={handleApiChange} className="w-full">
+              <Carousel setApi={setCarouselApi} className="w-full">
                 <CarouselContent>
                   {trade.images.map((src, idx) => (
                     <CarouselItem key={idx}>
@@ -148,25 +157,18 @@ export function TradeFeedCard({ trade }: TradeFeedCardProps) {
                       <img
                         src={src}
                         alt={`Trade image ${idx + 1}`}
-                        className="h-56 w-full rounded-md object-cover"
+                        className="aspect-video w-full rounded-md object-cover"
                       />
                     </CarouselItem>
                   ))}
                 </CarouselContent>
                 {hasMultipleImages && (
                   <>
-                    <CarouselPrevious
-                      className="left-2 h-8 w-8"
-                      onClick={(e) => e.preventDefault()}
-                    />
-                    <CarouselNext
-                      className="right-2 h-8 w-8"
-                      onClick={(e) => e.preventDefault()}
-                    />
+                    <CarouselPrevious className="left-2 h-8 w-8" />
+                    <CarouselNext className="right-2 h-8 w-8" />
                   </>
                 )}
               </Carousel>
-              {/* Dot indicators */}
               {hasMultipleImages && (
                 <div className="mt-2 flex justify-center gap-1">
                   {trade.images.map((_, idx) => (
@@ -179,7 +181,6 @@ export function TradeFeedCard({ trade }: TradeFeedCardProps) {
                       )}
                       onClick={(e) => {
                         e.preventDefault();
-                        e.stopPropagation();
                         api?.scrollTo(idx);
                       }}
                       aria-label={`Go to image ${idx + 1}`}

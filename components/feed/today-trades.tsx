@@ -55,9 +55,11 @@ export function TodayTrades() {
           <Skeleton className="h-9 w-28" />
           <Skeleton className="h-9 w-28" />
         </div>
-        {[1, 2].map((i) => (
-          <Skeleton key={i} className="h-32 w-full rounded-lg" />
-        ))}
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {[1, 2].map((i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-lg" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -92,7 +94,7 @@ export function TodayTrades() {
 
       {/* Trade cards */}
       {filtered.length > 0 ? (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {filtered.map((trade) => (
             <TradeFeedCard key={trade.id} trade={trade} />
           ))}

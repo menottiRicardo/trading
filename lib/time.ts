@@ -61,7 +61,30 @@ export function formatEt(
 }
 
 export function getEtDateKey(ts: number | Date): string {
-  return formatEt(ts, { year: "numeric", month: "2-digit", day: "2-digit" });
+  const date = typeof ts === "number" ? new Date(ts) : ts;
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: ET_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = formatter.formatToParts(date);
+  const year = parts.find((p) => p.type === "year")?.value ?? "0000";
+  const month = (parts.find((p) => p.type === "month")?.value ?? "1").padStart(2, "0");
+  const day = (parts.find((p) => p.type === "day")?.value ?? "1").padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * FF-style calendar strings encode the release in Eastern Time. Using
+ * `new Date(iso)` for grouping can shift the calendar day in non-US timezones
+ * when the string lacks an offset. Prefer the date prefix when present.
+ */
+export function getEtDateKeyFromFfDateString(isoLike: string): string {
+  const trimmed = isoLike.trim();
+  const m = /^(\d{4}-\d{2}-\d{2})[T ]/.exec(trimmed);
+  if (m) return m[1];
+  return getEtDateKey(new Date(trimmed));
 }
 
 export function isToday(ts: number | Date): boolean {
