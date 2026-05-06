@@ -20,6 +20,8 @@ export interface TradeRecord {
   notas: string;
   images: string[];
   tags: string[];
+  /** True when the user overrode one or more blocking steps to record the trade anyway. */
+  forced?: boolean;
 }
 
 // ─── Step types ───────────────────────────────────────────────────────────────
@@ -57,6 +59,8 @@ export interface EndStep extends BaseStep {
   title: string;
   /** may reference ${direction} resolved at render time */
   message: string;
+  /** If set, "Continuar de todos modos" jumps to this step id. */
+  overrideNext?: string;
 }
 
 export type Step = QuestionStep | InfoStep | EndStep;
@@ -106,6 +110,7 @@ export const STEPS: Step[] = [
     outcome: "blocked",
     title: "No puedes tomar un trade",
     message: "Espera otra sesión o otro día.",
+    overrideNext: "q3",
   },
   {
     id: "q3",
@@ -147,6 +152,7 @@ export const STEPS: Step[] = [
     outcome: "blocked",
     title: "Espera el Power Hour",
     message: "Deja que el mercado digiera el movimiento antes de operar.",
+    overrideNext: "q6",
   },
   {
     id: "q6",
@@ -164,6 +170,7 @@ export const STEPS: Step[] = [
     outcome: "blocked",
     title: "No puedes tomar un trade",
     message: "Espera el tiempo para operar.",
+    overrideNext: END_OK,
   },
   {
     id: END_OK,
@@ -181,6 +188,12 @@ export const STEPS_BY_ID = Object.fromEntries(STEPS.map((s) => [s.id, s]));
 export const QUESTION_IDS = STEPS.filter((s) => s.kind === "question").map(
   (s) => s.id
 );
+
+// ─── Forced-bad end copy ──────────────────────────────────────────────────────
+
+export const FORCED_END_TITLE = "Este trade no se ve bien";
+export const FORCED_END_MESSAGE =
+  "Lo más seguro es que perdiste dinero. Tómalo con calma y mañana es otro día.";
 
 // ─── Summary builder ──────────────────────────────────────────────────────────
 
@@ -201,6 +214,7 @@ export function answerChoiceKey(a: Answer): string {
 /** Returns a contextual "how did it go?" prompt for the edit dialog. */
 export function buildOutcomePrompt(trade: TradeRecord): string {
   const lowProb =
+    trade.forced ||
     trade.answers["q1"] === INFO_NO_CONTEXT ||
     trade.answers["q3"] === INFO_NO_PD;
   return lowProb

@@ -14,6 +14,9 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import {
   answerChoiceKey,
   buildSummary,
+  END_OK,
+  FORCED_END_MESSAGE,
+  FORCED_END_TITLE,
   QUESTION_IDS,
   STEPS_BY_ID,
   type Direction,
@@ -38,6 +41,7 @@ export function ChecklistForm() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [images, setImages] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
+  const [forced, setForced] = useState(false);
 
   const primaryBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -69,6 +73,7 @@ export function ChecklistForm() {
     setAnswers({});
     setImages([]);
     setSaved(false);
+    setForced(false);
   }, []);
 
   // ── Question answer ───────────────────────────────────────────────────────
@@ -94,11 +99,21 @@ export function ChecklistForm() {
     }
   }, [step, answers, goTo]);
 
+  const forceContinue = useCallback(() => {
+    if (step.kind !== "end") return;
+    const target = (step as EndStepType).overrideNext;
+    if (!target) return;
+    setForced(true);
+    goTo(target);
+  }, [step, goTo]);
+
   // ── Save trade ────────────────────────────────────────────────────────────
 
   const saveAndFinish = useCallback(async () => {
     if (saved) return;
-    const summary = buildSummary(answers);
+    const summary = forced
+      ? "Trade forzado fuera de las reglas."
+      : buildSummary(answers);
     const direction = (answers["q4"] as Direction) ?? "bajista";
     await addTrade({
       id: crypto.randomUUID(),
@@ -111,10 +126,11 @@ export function ChecklistForm() {
       notas: "",
       images,
       tags: [],
+      forced,
     });
     setSaved(true);
     toast.success("Trade guardado en el historial");
-  }, [saved, answers, images, addTrade]);
+  }, [saved, forced, answers, images, addTrade]);
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
 
@@ -132,13 +148,18 @@ export function ChecklistForm() {
       } else if (step.kind === "info" && e.key === "Enter") {
         advance();
       } else if (step.kind === "end" && e.key === "Enter") {
-        if ((step as EndStepType).outcome === "ok" && !saved) saveAndFinish();
+        const es = step as EndStepType;
+        if (es.outcome === "blocked" && es.overrideNext) {
+          forceContinue();
+        } else if (es.id === END_OK && !saved) {
+          saveAndFinish();
+        }
       }
     }
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [step, answers, advance, selectAnswer, saved, saveAndFinish]);
+  }, [step, answers, advance, selectAnswer, saved, saveAndFinish, forceContinue]);
 
   // Focus primary button on step change
   useEffect(() => {
@@ -149,9 +170,16 @@ export function ChecklistForm() {
 
   const isEnd = step.kind === "end";
   const endStep = isEnd ? (step as EndStepType) : null;
-  const isOkEnd = endStep?.outcome === "ok";
-  const resolvedMessage =
-    isOkEnd ? buildSummary(answers) : (endStep?.message ?? "");
+  // isSaveEnd: the step where we present the final save UI (always END_OK)
+  const isSaveEnd = endStep?.id === END_OK;
+  // When the user forced through at least one block and lands on END_OK,
+  // show the negative outcome copy instead of the success copy.
+  const isForcedBadEnd = isSaveEnd && forced;
+  const endOutcome: "ok" | "blocked" = isForcedBadEnd ? "blocked" : (endStep?.outcome ?? "ok");
+  const endTitle = isForcedBadEnd ? FORCED_END_TITLE : (endStep?.title ?? "");
+  const resolvedMessage = isSaveEnd
+    ? (isForcedBadEnd ? FORCED_END_MESSAGE : buildSummary(answers))
+    : (endStep?.message ?? "");
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -184,11 +212,11 @@ export function ChecklistForm() {
           {step.kind === "end" && (
             <div className="flex flex-col gap-6">
               <EndStep
-                outcome={endStep!.outcome}
-                title={endStep!.title}
+                outcome={endOutcome}
+                title={endTitle}
                 message={resolvedMessage}
               />
-              {isOkEnd && (
+              {isSaveEnd && (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Imágenes (opcional)
@@ -226,13 +254,13 @@ export function ChecklistForm() {
             </Button>
           )}
 
-          {isEnd && isOkEnd && !saved && (
+          {isEnd && isSaveEnd && !saved && (
             <Button ref={primaryBtnRef} onClick={saveAndFinish}>
               Guardar trade
             </Button>
           )}
 
-          {isEnd && isOkEnd && saved && (
+          {isEnd && isSaveEnd && saved && (
             <div className="flex gap-2">
               <Button variant="outline" onClick={resetForm}>
                 Nuevo trade
@@ -247,9 +275,16 @@ export function ChecklistForm() {
           )}
 
           {isEnd && endStep?.outcome === "blocked" && (
-            <Button ref={primaryBtnRef} variant="outline" onClick={resetForm}>
-              Empezar de nuevo
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={resetForm}>
+                Empezar de nuevo
+              </Button>
+              {endStep.overrideNext && (
+                <Button ref={primaryBtnRef} variant="destructive" onClick={forceContinue}>
+                  Continuar de todos modos
+                </Button>
+              )}
+            </div>
           )}
         </CardFooter>
       </Card>
